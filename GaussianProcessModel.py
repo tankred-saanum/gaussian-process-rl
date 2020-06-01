@@ -1,10 +1,8 @@
 import math
 import torch
 import gpytorch
-import pyro
-from pyro.infer.mcmc import NUTS, MCMC
 from matplotlib import pyplot as plt
-from gpytorch.priors import LogNormalPrior, NormalPrior, UniformPrior, GammaPrior
+
 
 # A very simple extension of the ExactGPInference object from gpytorch: Here kernels are passed as arguments to the
 # model constructor.
