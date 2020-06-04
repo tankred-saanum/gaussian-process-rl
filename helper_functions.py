@@ -10,7 +10,7 @@ import random
 def sampleFromContext(context, latent_function, neural_dictionary, sample_range, samples = 20, chosen_value = None):
 
     if chosen_value != None:
-        X_new = torch.tensor([chosen_value])
+        X_new = torch.tensor([chosen_value]).float()
     else:
         sample_min, sample_max = sample_range
         X_new = sampleX(samples, sample_min, sample_max)
@@ -30,24 +30,22 @@ def sampleFromContext(context, latent_function, neural_dictionary, sample_range,
         Y = Y_new
 
 
-    scale_params_x = (torch.mean(X).item(), 1)
-    scale_params_y = (torch.mean(Y).item(), 1)
+    # scale_params_x = (torch.mean(X).item(), 1)
+    # scale_params_y = (torch.mean(Y).item(), 1)
 
     # For certain kinds of data it's better to just subtract the mean from observations. This is because the GP
     # often just interprets variation as noise and ends up underfitting. When not standardized, the variance
     # becomes too pertinent to attribute to noise.
 
-    # X_norm, mu_x, sd_x = standardize(X)
-    # Y_norm= standardize(Y, given_mu=torch.mean(Y).item(), given_sd=1) # This is the best for y
+    #X_norm= standardize(X, scale_params_x[0], scale_params_x[1])
+    #Y_norm= standardize(Y, given_mu=torch.mean(Y).item(), given_sd=1) # This is the best for y
 
 
     X_norm = X - torch.mean(X).item()
     Y_norm = Y - torch.mean(Y).item()
 
-
-
-
-    return (X_new, X_norm, Y_norm, scale_params_x, scale_params_y, X, Y)
+    return (X_new, X, Y)
+    # return (X_new, X_norm, Y_norm, scale_params_x, scale_params_y, X, Y)
 
 
 def standardize(X, given_mu = None, given_sd = None):
@@ -62,15 +60,19 @@ def standardize(X, given_mu = None, given_sd = None):
             X = (X - given_mu)/given_sd
             return X
     else:
-        X = X - np.mean(X)
-        return (X, np.mean(X), 0)
+        if given_mu == None:
+            X = X - torch.mean(X).item()
+        else:
+            X = (X - given_mu) / given_sd
+        return X
+        #return (X, np.mean(X), 0)
 
 
 
-def recover_unstandardized(X, mu_x, sd_X, discrete_X = True):
+def recover_unstandardized(X, mu_x, sd_X, discrete = False):
 
     X = (X * sd_X) + mu_x
-    if discrete_X:
+    if discrete:
         X = X.int()
 
     return X
@@ -85,15 +87,27 @@ def sampleX(sample_size, x_min, x_max, uniform = False):
 
 
 def sampleReward(latent_function, X):
-    rewards = latent_function(X)
+    rewards = latent_function(X, sd = 0.1)
     return rewards
 
 
 def createContext(random_function = False, trial = 0):
+    #
+    # context_list = ["100", "010", "001", "110", "101", "011", "111"]
+    # all_functions = [linear, periodic, radial_basis, linear_periodic, linear_radial_basis,
+    #                  radial_basis_periodic, lin_sin_rbf]
 
-    context_list = ["100", "010", "001", "110", "101", "011", "111"]
-    all_functions = [linear, periodic, radial_basis, linear_periodic, linear_radial_basis,
-                     radial_basis_periodic, lin_sin_rbf]
+    context_list = ["100", "010", "110"]
+    all_functions = [linear, periodic, linear_periodic]
+
+    # context_list = ["100"]
+    # # all_functions = [linear]
+    # context_list = ["010"]
+    # all_functions = [periodic]
+
+    # context_list = ["001"]
+    # all_functions = [radial_basis]
+
 
 
     if random_function:
@@ -135,3 +149,14 @@ def getUniform(hypothesis_space, return_array = True):
 
 def getGaussian(x, mu, sigma):
     return (1.0/(sigma*np.sqrt(2*np.pi)))*np.exp(-0.5*((x - mu)/sigma)**2)
+
+def get_kernel_params(kernels):
+    parameter_arr = []
+    for kernel in kernels:
+        param_list = []
+        for param_name, value in kernel.named_hyperparameters():
+            param_list.append(param_name)
+
+        parameter_arr.append(len(param_list))
+    parameter_arr = np.array(parameter_arr)
+    return parameter_arr

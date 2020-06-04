@@ -4,7 +4,7 @@ import numpy as np
 # informed by these values, either stochastically (softmax) or deterministically (maximizing value)
 
 class Agent():
-    def __init__(self, input_space, beta, temperature):
+    def __init__(self, input_space, beta = 1.96, temperature = 1):
         self.action_space = input_space
         self.beta = beta
         self.temperature = temperature
@@ -22,7 +22,7 @@ class Agent():
 
     def gpUpperConfidence(self, predicted_values, gp_variance):
 
-        self.uncertainty = np.sqrt(gp_variance)
+        self.uncertainty = gp_variance
         self.gp_ucb = predicted_values + (self.beta * self.uncertainty)
         return self.gp_ucb
 

@@ -15,12 +15,14 @@ class NeuralDictionary():
         self.penalties = np.exp(-0.15 * self.kernel_parameters)
         self.softmax_temp = 0.6
 
-    def append(self, key, features, kernels, X, Y):
-        self.context_dict[key] = [0, 0, 0, 0]
+    def append(self, key, features, kernels, X, Y, action_values = None, uncertainty = None):
+        self.context_dict[key] = [0, 0, 0, 0, 0, 0]
         self.context_dict[key][0] = features
         self.context_dict[key][1] = kernels
         self.context_dict[key][2] = X
         self.context_dict[key][3] = Y
+        self.context_dict[key][4] = action_values
+        self.context_dict[key][5] = uncertainty
 
     def cosine_similarity(self, vec_1, vec_2):
         self.numerator = sum(vec_1 * vec_2)
@@ -63,3 +65,15 @@ class NeuralDictionary():
         else:
             return self.untransformed_prior
 
+    # Getter methods:
+    def get_action_values(self, context):
+        if context in self.context_dict:
+            return self.context_dict[context][4]
+        else:
+            return False
+
+    def get_action_confidence(self, context):
+        if context in self.context_dict:
+            return self.context_dict[context][5]
+        else:
+            return False
