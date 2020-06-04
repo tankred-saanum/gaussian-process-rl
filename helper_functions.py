@@ -17,7 +17,6 @@ def sampleFromContext(context, latent_function, neural_dictionary, sample_range,
 
     Y_new = sampleReward(latent_function, X_new)
 
-
     if context in neural_dictionary.context_dict:
         recalled_X = neural_dictionary.context_dict[context][2]
         recalled_Y = neural_dictionary.context_dict[context][3]
@@ -91,28 +90,21 @@ def sampleReward(latent_function, X):
     return rewards
 
 
-def createContext(random_function = False, trial = 0):
-    #
-    # context_list = ["100", "010", "001", "110", "101", "011", "111"]
-    # all_functions = [linear, periodic, radial_basis, linear_periodic, linear_radial_basis,
-    #                  radial_basis_periodic, lin_sin_rbf]
+def createContext(random_function = False, trial = 0, context_n = 5):
 
-    context_list = ["100", "010", "110"]
-    all_functions = [linear, periodic, linear_periodic]
+    context_list = ["100", "010", "001", "110", "101", "011", "111"]
+    all_functions = [linear, periodic, radial_basis, linear_periodic, linear_radial_basis,
+                     radial_basis_periodic, lin_sin_rbf]
 
-    # context_list = ["100"]
-    # # all_functions = [linear]
-    # context_list = ["010"]
-    # all_functions = [periodic]
 
-    # context_list = ["001"]
-    # all_functions = [radial_basis]
 
+    context_list = [context_list[i] for i in range(context_n)]
+    all_functions = [all_functions[i] for i in range(context_n)]
 
 
     if random_function:
         index = random.randint(0, len(context_list) - 1)
-    else:
+    elif context_n > 2:
         if trial < 2:
             index = 0
         elif trial < 4:
