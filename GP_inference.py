@@ -263,52 +263,5 @@ def BIC(log_ml, n, params):
 
 
 
-# RETIRED FUNCTIONS
-
-
-# def begin_training(model, X, Y, likelihood, learning_rate = 0.1, training_iterations = 50):
-#         # Function for training GP with ML II:
-#         training_iter = training_iterations
-#         likelihood = likelihood
-#
-#         # Set model and likelihood in train mode
-#         model.train()
-#         likelihood.train()
-#
-#
-#
-#         model.likelihood.initialize(noise=0.001)
-#         likelihood.noise_covar.raw_noise.requires_grad_(False)
-#         #model.mean_module.constant.requires_grad_(False)
-#
-#
-#         #use adam algorithm
-#         optimizer = torch.optim.Adam([
-#             {'params': model.parameters()},
-#         ], lr=learning_rate)
-#
-#         # loss = negative log marginal likelihood
-#         mll = gpytorch.mlls.ExactMarginalLogLikelihood(likelihood, model)
-#         for i in range(training_iter):
-#             # Zero gradients from previous iteration
-#             optimizer.zero_grad()
-#             # Output from model
-#             output = model(X)
-#             # Calc loss and backprop gradients
-#             loss = -mll(output, Y)
-#             loss.backward()
-#             print("iteration and loss: ",
-#                 i + 1, training_iter, loss.item(),
-#
-#             )
-#
-#             optimizer.step()
-#
-#         # compute final mll
-#         output = model(X)
-#         marginal_log_likelihood = mll(output, Y).item()
-#
-#         return marginal_log_likelihood
-
 
 
