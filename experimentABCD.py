@@ -14,12 +14,12 @@ from kernel_priors import *
 # ABCD is performed by calling the ABCD function with the data and kernels, whereas the more Bayesian variant is
 # performed by calling the BayesianGPInference function. See GP_inference for details
 
-min_x, max_x, n = 0, 2, 100
+min_x, max_x, n = 0, 15, 100
 train_x = torch.linspace(min_x, max_x, n)
 # train_y = linear(train_x, sd = 0.01) + radial_basis(train_x) + linear_periodic(train_x)
 train_y = random_nonlinear(train_x, sd= 0.1)
 
-test_x = create_test_x((-1, 3), 200)
+test_x = create_test_x((-5, 20), 200)
 # Create a set of kernels
 
 lin = gpytorch.kernels.ScaleKernel(gpytorch.kernels.LinearKernel(variance_prior=linear_variance_prior), outputscale_prior=linear_outputscale_prior)
@@ -46,4 +46,4 @@ kernel_priors = penalized_prior
 # perform abcd:
 model, likelihood, posterior = ABCD(train_x, train_y, core_kernels, kernel_priors, test_x)
 # create a more bayesian composite model:
-posterior, y_hat, confidence = bayesianGPInference(train_x, train_y, core_kernels, kernel_priors, test_x)
+posterior, predictive_dist, y_hat, confidence = bayesianGPInference(train_x, train_y, core_kernels, kernel_priors, test_x)

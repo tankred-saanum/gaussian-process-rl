@@ -99,12 +99,12 @@ for i in range(context_encounters):
     print(X)
     # create testing data, making sure that the action points are included in test_x
     test_x, action_indices = create_test_x(test_range, test_n, action_space)
-    display = True if i > context_encounters - 130 else False
+    display = True if i > context_encounters - 140 else False
 
 
     # Perform bayesian inference over kernel space, and create posterior predicitive distribution which integrates over
     # posterior uncertainty
-    posterior, y_hat, uncertainty = bayesianGPInference(X, Y, core_kernels, new_priors, test_x=test_x, display_result=display)
+    posterior, predictive_dist, y_hat, uncertainty = bayesianGPInference(X, Y, core_kernels, new_priors, test_x=test_x, display_result=display)
 
     action_values, action_confidence = get_action_values(y_hat, uncertainty, action_indices)
 

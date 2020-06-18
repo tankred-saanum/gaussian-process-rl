@@ -3,6 +3,7 @@ import gpytorch
 import GaussianProcessModel
 import numpy as np
 from matplotlib import pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 from helper_functions import *
 
 
@@ -29,7 +30,7 @@ def bayesianGPInference(X, Y, kernels, kernel_priors, test_x, display_result = T
         print(posterior)
         plotGP(X, Y, test_x, posterior_distribution, y_hat, lower_c = lower_confidence, upper_c = upper_confidence)
 
-    return posterior, y_hat, upper_confidence
+    return posterior, posterior_distribution, y_hat, upper_confidence
 
 
 def computeGPyTorchMarginal(X, Y, kernel_space, test_x, display_each = False):
@@ -56,8 +57,8 @@ def computeGPyTorchMarginal(X, Y, kernel_space, test_x, display_each = False):
         predictive_dist_list.append(predictive_dist)
         y_hat_list.append(y_hat)
         # append confidence regions as np arrays
-        lower_c.append(lower.numpy())
-        upper_c.append(upper.numpy())
+        lower_c.append(lower.detach().numpy())
+        upper_c.append(upper.detach().numpy())
 
         if display_each:
             plotGP(X, Y, test_x, predictive_dist, y_hat)
@@ -146,7 +147,6 @@ def begin_training(model, X, Y, likelihood, learning_rate=0.1, training_iteratio
     losses = torch.zeros(n_restarts, num_steps)
 
     for i in np.arange(n_restarts):
-        torch.random.initial_seed()
         # Use the adam optimizer
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
         # "Loss" for GPs - the marginal log likelihood
@@ -158,9 +158,10 @@ def begin_training(model, X, Y, likelihood, learning_rate=0.1, training_iteratio
             output = model(X)
             loss = -mll_ml(output, Y)
 
+            if j == num_steps - 1:
+                print(f"Step: {j}/{num_steps}, loss: {loss}")
+
             loss.backward()
-            # if (j % num_steps == 0):
-            #     print('Iter %d/%d - Loss: %.3f' % (j + 1, num_steps, loss.item()))
             optimizer.step()
 
             model_states.append({param_name: param.detach() for param_name, param in model.state_dict().items()})
@@ -170,36 +171,65 @@ def begin_training(model, X, Y, likelihood, learning_rate=0.1, training_iteratio
     best_model_params = model_states[best_final_idx]
     model.load_state_dict(best_model_params)
 
-    # print(f'Actual outputscale: {model.covar_module.outputscale}')
-    # print(f'Actual lengthscale: {model.covar_module.base_kernel.lengthscale}')
-    #print(f'Actual period length: {model.covar_module.base_kernel.period_length}')
 
     # compute final mll
     output = model(X)
     marginal_log_likelihood = mll_ml(output, Y).item()
-    print(marginal_log_likelihood)
     return marginal_log_likelihood
 
-def plotGP(train_x, train_y, test_x, predictive_dist, y_hat, plot_extra_confidence = True, lower_c = None, upper_c = None):
+def plotGP(train_x, train_y, test_x, predictive_dist, y_hat, plot_extra_confidence = True, lower_c = None, upper_c = None, mesh = None):
     # plots a GPs predictive distribution and confidence region
     with torch.no_grad():
         # Initialize plot
-        f, ax = plt.subplots(1, 1, figsize=(8, 8))
 
-        # Get upper and lower confidence bounds
-        lower, upper = predictive_dist.confidence_region()
-        # Plot training data as black stars
-        ax.plot(train_x.numpy(), train_y.numpy(), 'k*')
-        # Plot predictive means as blue line
-        ax.plot(test_x.numpy(), y_hat, 'b')
-        # Shade between the lower and upper confidence bounds
-        ax.fill_between(test_x.numpy(), lower.numpy(), upper.numpy(), alpha=0.5)
-        if plot_extra_confidence:
-            ax.fill_between(test_x.numpy(), lower_c, upper_c, alpha=0.25)
-        ax.set_ylim([np.min(y_hat) - 2, np.max(y_hat) + 2])
-        ax.legend(['Observed Data', 'Mean', 'Confidence'])
+        input_size = list(train_x.size())
+        if len(input_size) > 1:
 
-        plt.show()
+            # Note that y_hat must be reshaped before being plotted in 3d
+
+            f = plt.figure()
+            ax = f.add_subplot(111, projection='3d')
+            ax.scatter(train_x[:, 0].numpy(), train_x[:, 1].numpy(), train_y.numpy(), c= "k", marker = "*")
+
+            xv_test, yv_test = mesh[0], mesh[1]
+
+            ax.plot_surface(xv_test.numpy(), yv_test.numpy(), y_hat)
+
+            plt.show()
+
+        else:
+            f, ax = plt.subplots(1, 1, figsize=(8, 8))
+
+            # Get upper and lower confidence bounds
+            lower, upper = predictive_dist.confidence_region()
+            # Plot training data as black stars
+            ax.plot(train_x.numpy(), train_y.numpy(), 'k*')
+            # Plot predictive means as blue line
+            ax.plot(test_x.numpy(), y_hat, 'b')
+            # Shade between the lower and upper confidence bounds
+            ax.fill_between(test_x.numpy(), lower.numpy(), upper.numpy(), alpha=0.5)
+            if plot_extra_confidence:
+                ax.fill_between(test_x.numpy(), lower_c, upper_c, alpha=0.25)
+            ax.set_ylim([np.min(y_hat) - 2, np.max(y_hat) + 2])
+            ax.legend(['Observed Data', 'Mean', 'Confidence'])
+
+            plt.show()
+
+
+
+
+def create_2D_testx(range1, range2, n1, n2):
+    # Does currently not include actions in test space. To get action space, pass only the ranges of possible actions.
+    min1, max1 = range1
+    min2, max2 = range2
+    xv, yv = torch.meshgrid([torch.linspace(min1, max1, n1), torch.linspace(min2, max2, n2)])
+
+    mesh = (xv, yv)
+
+    test_x = torch.stack([xv.reshape(n1 * n2, 1), yv.reshape(n1 * n2, 1)], -1).squeeze(1)
+
+    return test_x, mesh
+
 
 
 def create_test_x(test_range, test_n, action_space = None):
@@ -255,13 +285,52 @@ def ABCD(X, Y, kernels, kernel_priors, test_x):
 
     return max_posterior_model, max_posterior_likelihood, posterior
 
+def compute_family_posterior(families, family_priors, kernels):
+
+    ml = []
+    for family in families:
+        likelihoods = family.get_kernel_space_likelihoods(kernels)
+        ml.append(likelihoods)
+
+    ml = np.array(ml)
+    family_priors = family_priors.reshape(-1, 1)
+
+    unnormalized_posterior = ml * family_priors
+    normalizer = np.sum(unnormalized_posterior, axis=0)
+    posterior = unnormalized_posterior/normalizer
+
+    return posterior
+
+def compute_joint_posterior(kernel_posterior, familiy_posterior):
+    joint_posterior = kernel_posterior * familiy_posterior
+
+    final_family_posterior = np.array([np.sum(arr) for arr in joint_posterior])
+    return joint_posterior, final_family_posterior
+
+
+def sample_from_grammar_fragments(kernel_families, family_priors, unique = True, includes_root = True, num_draws = 1):
+    core_kernels = np.array([])
+    probabilities = []
+
+    for fam in kernel_families:
+
+        kern, prob = fam.draw_multiple(num_draws=num_draws, unique=unique,
+                                       includes_root=includes_root)  # draw n unique kernels, including root
+
+        core_kernels = np.concatenate((core_kernels, kern), axis=0)
+        probabilities.append(prob)
+
+    probabilities = np.array(probabilities)
+    probabilities = probabilities * family_priors
+    probabilities = probabilities / np.sum(probabilities)
+    probabilities = probabilities.flatten()
+
+    test = np.sum(probabilities)
+    return core_kernels, probabilities
+
 def BIC(log_ml, n, params):
     # compute BIC
     bic = (params * np.log(n)) - (2 * log_ml)
     return bic
-
-
-
-
 
 

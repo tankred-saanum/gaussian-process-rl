@@ -39,9 +39,9 @@ def sampleFromContext(context, latent_function, neural_dictionary, sample_range,
     #X_norm= standardize(X, scale_params_x[0], scale_params_x[1])
     #Y_norm= standardize(Y, given_mu=torch.mean(Y).item(), given_sd=1) # This is the best for y
 
-
-    X_norm = X - torch.mean(X).item()
-    Y_norm = Y - torch.mean(Y).item()
+    #
+    # X_norm = X - torch.mean(X).item()
+    # Y_norm = Y - torch.mean(Y).item()
 
     return (X_new, X, Y)
     # return (X_new, X_norm, Y_norm, scale_params_x, scale_params_y, X, Y)
@@ -64,7 +64,6 @@ def standardize(X, given_mu = None, given_sd = None):
         else:
             X = (X - given_mu) / given_sd
         return X
-        #return (X, np.mean(X), 0)
 
 
 
@@ -86,33 +85,32 @@ def sampleX(sample_size, x_min, x_max, uniform = False):
 
 
 def sampleReward(latent_function, X):
-    rewards = latent_function(X, sd = 0.1)
+    rewards = latent_function(X)
     return rewards
 
 
-def createContext(random_function = False, trial = 0, context_n = 5):
+def createContext(random_function = False, trial = 0, interval = 2):
 
     context_list = ["100", "010", "001", "110", "101", "011", "111"]
     all_functions = [linear, periodic, radial_basis, linear_periodic, linear_radial_basis,
                      radial_basis_periodic, lin_sin_rbf]
 
 
-
-    context_list = [context_list[i] for i in range(context_n)]
-    all_functions = [all_functions[i] for i in range(context_n)]
+    # context_list = [context_list[i] for i in range(context_n)]
+    # all_functions = [all_functions[i] for i in range(context_n)]
 
 
     if random_function:
         index = random.randint(0, len(context_list) - 1)
-    elif context_n > 2:
-        if trial < 2:
+    else:
+        if trial < interval:
             index = 0
-        elif trial < 4:
+        elif trial < interval * 2:
             index = 1
-        elif trial < 6:
+        elif trial < interval * 3:
             index = 2
         else:
-            index = random.randint(0, len(context_list) - 1)
+            index = random.randint(2, len(context_list) - 1)
 
     context = context_list[index]
 

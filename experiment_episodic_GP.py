@@ -77,7 +77,7 @@ for i in range(context_encounters):
     test_x = create_test_x(test_range, test_samples)
     # Perform bayesian inference over kernel space, and create posterior predicitive distribution which integrates over
     # posterior uncertainty
-    posterior, y_hat, upper_confidence = bayesianGPInference(X, Y, core_kernels, new_priors, test_x)
+    posterior, predictive_dist, y_hat, upper_confidence = bayesianGPInference(X, Y, core_kernels, new_priors, test_x)
 
 
     # Append context, data and posterior to dictionary
